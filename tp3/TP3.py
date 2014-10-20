@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-# <nbformat>3.0</nbformat>
 
-# <codecell>
 
 import numpy as np
 
-# <codecell>
+
 
 class LabeledSet:  
     
@@ -35,16 +33,10 @@ class LabeledSet:
     #Renvoie la valeur de y_i
     def getY(self,i):
         return self.y[1]
+
        
-
-# <markdowncell>
-
 # Implémentation des Losses
-# ======
-# 
-# Nous allons nous intéresser à l'implémentation "générique" d'un coût (loss) de prédiction. 
 
-# <codecell>
 
 class Loss:
     
@@ -56,11 +48,8 @@ class Loss:
     def backward(self, predicted_output,desired_output):
         pass 
 
-# <markdowncell>
 
-# Implémenter le coût des moindres carrés selon cette spécification
-
-# <codecell>
+#Square Loss
 
 class SquareLoss(Loss):
     def getLossValue(self,predicted_output,desired_output):
@@ -69,14 +58,17 @@ class SquareLoss(Loss):
     def backward(self, predicted_output,desired_output):
         return 2*(predicted_output-desired_output)
     
-
-# <markdowncell>
-
-# Immplémenter le ''hinge loss''
-
-# <codecell>
+#HingeLoss
 
 class HingeLoss(Loss):
+    def getLossValue(self,predicted_output,desired_output):
+        return np.max(np.zeros(predicted_output.size), desired_output*predicted_output))
+    
+    def backward(self, predicted_output,desired_output):
+        if(desired_output * predicted_output < 1)
+            return -desired_output*predicted_output
+        else
+            return np.zeros(predicted_output.size)
     pass
 
 # <markdowncell>
@@ -145,6 +137,104 @@ class LinearModule(Module):
     
     #Permet le calcul du gradient des cellules d'entrée
     def backward_delta(self,input,delta_module_suivant):
+        return np.dot(input,delta_module_suivant)
+        
+        
+    #Permet d'initialiser le gradient du module
+    def init_gradient(self):
+        self.gradient = np.zeros(self.layer_size)
+        return
+    
+    #Permet la mise à jour des parmaètres du module avcec la valeur courante di gradient
+    def update_parameters(self,gradient_step):
+        self.parameters -= self.gradient*gradient_step
+        return
+    #Permet de mettre à jour la valeur courante du gradient par addition
+    def backward_update_gradient(self,input,delta_module_suivant):
+        self.gradient += np.dot(input,delta_module_suivant)
+        return
+    
+    #Permet de faire les deux backwar simultanément
+    def backward(self,input,delta_module_suivant):
+        self.backward_update_gradient(input,delta_module_suivant)
+        return self.backward_delta(input,delta_module_suivant)
+
+    #Retourne les paramètres du module
+    def get_parameters(self):
+        return self.parameters
+    
+    #Initialize aléatoirement les paramètres du module
+    def randomize_parameters(self):
+        self.parameters = np.random.randn(self.layer_size,self.entry_size)
+        return
+
+
+class TanhModule(Module):
+    
+    #Permet le calcul de la sortie du module
+    def __init__(self,entry_size,layer_size):
+        self.entry_size = entry_size
+        self.layer_size = layer_size
+        self.init_gradient()
+        self.randomize_parameters()
+    
+    def forward(self,input):
+        return np.tanh(input)
+    
+    #Permet le calcul du gradient des cellules d'entrée
+    def backward_delta(self,input,delta_module_suivant):
+        pass ##TODO
+        return np.dot(input,delta_module_suivant)
+        
+        
+    #Permet d'initialiser le gradient du module
+    def init_gradient(self):
+        self.gradient = np.zeros(self.layer_size)
+        return
+    
+    #Permet la mise à jour des parmaètres du module avcec la valeur courante di gradient
+    def update_parameters(self,gradient_step):
+        self.parameters -= self.gradient*gradient_step
+        return
+    #Permet de mettre à jour la valeur courante du gradient par addition
+    def backward_update_gradient(self,input,delta_module_suivant):
+        self.gradient += np.dot(input,delta_module_suivant)
+        return
+    
+    #Permet de faire les deux backwar simultanément
+    def backward(self,input,delta_module_suivant):
+        self.backward_update_gradient(input,delta_module_suivant)
+        return self.backward_delta(input,delta_module_suivant)
+
+    #Retourne les paramètres du module
+    def get_parameters(self):
+        return self.parameters
+    
+    #Initialize aléatoirement les paramètres du module
+    def randomize_parameters(self):
+        self.parameters = np.ones(self.layer_size,self.entry_size)
+        return
+
+
+#multimodule
+class MultiModule(Module):
+    
+    #Permet le calcul de la sortie du module
+    def __init__(self,modules,loss):
+        self.modules = modules
+        self.loss =loss
+    
+    def forward(self,input):
+        
+        for module in modules:
+            input = module.forward(input)
+        return input
+    
+    #Permet le calcul du gradient des cellules d'entrée
+    def backward_delta(self,input,delta_module_suivant):
+        for module in modules:
+            input = module.forward(input)
+        return input
         return np.dot(input,delta_module_suivant)
         
         
