@@ -108,22 +108,28 @@ class LinearModule(Module):
     
     #Permet le calcul du gradient des cellules d'entrée
     def backward_delta(self,input,delta_module_suivant):
-        return np.dot(input,delta_module_suivant)
-        
+        return np.dot(self.parameters, delta_module_suivant)  
         
     #Permet d'initialiser le gradient du module
     def init_gradient(self):
-        self.gradient = np.zeros(self.layer_size)
+        self.gradient = np.zeros((self.entry_size,self.layer_size))
         return
     
     #Permet la mise à jour des parmaètres du module avcec la valeur courante di gradient
     def update_parameters(self,gradient_step):
         self.parameters -= self.gradient*gradient_step
         return
+
     #Permet de mettre à jour la valeur courante du gradient par addition
     def backward_update_gradient(self,input,delta_module_suivant):
-        self.gradient += np.dot(input,delta_module_suivant)
-        return
+        newGrad = np.zeros((self.entry_size,self.layer_size))
+        print delta_module_suivant.shape
+        for i in xrange(0,self.layer_size):
+            di = delta_module_suivant[i]
+            newGrad[i,:] = (di*input)
+
+        self.gradient += newGrad
+        return 
     
     #Permet de faire les deux backwar simultanément
     def backward(self,input,delta_module_suivant):
@@ -160,17 +166,15 @@ class TanhModule(Module):
         
     #Permet d'initialiser le gradient du module
     def init_gradient(self):
-        self.gradient = np.zeros(self.layer_size)
-        return
+        pass
     
     #Permet la mise à jour des parmaètres du module avcec la valeur courante di gradient
     def update_parameters(self,gradient_step):
-        self.parameters -= self.gradient*gradient_step
-        return
+        pass
+
     #Permet de mettre à jour la valeur courante du gradient par addition
     def backward_update_gradient(self,input,delta_module_suivant):
-        self.gradient += np.dot(input,delta_module_suivant)
-        return
+        pass
     
     #Permet de faire les deux backwar simultanément
     def backward(self,input,delta_module_suivant):
@@ -179,12 +183,55 @@ class TanhModule(Module):
 
     #Retourne les paramètres du module
     def get_parameters(self):
-        return self.parameters
+        pass
     
     #Initialize aléatoirement les paramètres du module
     def randomize_parameters(self):
-        self.parameters = np.ones(self.layer_size,self.entry_size)
-        return
+        pass
+
+
+class logisticModule(Module):
+    
+    #Permet le calcul de la sortie du module
+    def __init__(self,entry_size,layer_size):
+        self.entry_size = entry_size
+        self.layer_size = layer_size
+        self.init_gradient()
+        self.randomize_parameters()
+    
+    def forward(self,input):
+        return np.tanh(input)
+    
+    #Permet le calcul du gradient des cellules d'entrée
+    def backward_delta(self,input,delta_module_suivant):
+        pass ##TODO
+        return np.dot(input,delta_module_suivant)
+        
+        
+    #Permet d'initialiser le gradient du module
+    def init_gradient(self):
+        pass
+    
+    #Permet la mise à jour des parmaètres du module avcec la valeur courante di gradient
+    def update_parameters(self,gradient_step):
+        pass
+    #Permet de mettre à jour la valeur courante du gradient par addition
+    def backward_update_gradient(self,input,delta_module_suivant):
+        pass
+    
+    #Permet de faire les deux backwar simultanément
+    def backward(self,input,delta_module_suivant):
+        self.backward_update_gradient(input,delta_module_suivant)
+        return self.backward_delta(input,delta_module_suivant)
+
+    #Retourne les paramètres du module
+    def get_parameters(self):
+        pass
+    
+    #Initialize aléatoirement les paramètres du module
+    def randomize_parameters(self):
+        pass
+
 
 
 #multimodule
@@ -233,15 +280,9 @@ for i in xrange(0,100):
     x = np.random.rand(100)
     x1 = linmod.forward(x)
     loss = sqloss.getLossValue(x1,np.zeros(5))
-    print loss
     bck = sqloss.backward(x1,np.zeros(5))
+    print bck
     bb = linmod.backward(x,bck)
-
-network = MultiModule([LinearModule(100,5)],HingeLoss)
-
-
-setGauss = tt.createGaussianDataset(1,2,4,-5,-2,3,100)
-
 
 
 # <markdowncell>
