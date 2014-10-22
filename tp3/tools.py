@@ -1,6 +1,7 @@
 #tools.py
 #-*- coding: utf-8 -*- 
 import numpy as np
+import matplotlib.pyplot as plt
 
 class LabeledSet:  
     
@@ -61,3 +62,26 @@ def createGaussianDataset(positive_center_1,positive_center_2,positive_sigma,neg
          
     return LabeledSet(x,y,2,1)
 
+
+
+
+def plot2DSet(set):
+    plt.scatter(set.x[:,0],set.x[:,1])
+    plt.show()
+
+def plot_frontiere(x,f,step=20):
+    mmax=x.max(0)
+    mmin=x.min(0)
+    x1grid,x2grid=np.meshgrid(np.linspace(mmin[0],mmax[0],step),np.linspace(mmin[1],mmax[1],step))
+    grid=np.hstack((x1grid.reshape(x1grid.size,1),x2grid.reshape(x2grid.size,1)))
+
+# calcul de la prediction pour chaque point de la grille
+    res=np.array([f(grid[i,:])[0] for i in range(len(grid)) ])
+    res=res.reshape(x1grid.shape)
+    # tracer des frontieres
+    plt.contourf(x1grid,x2grid,res,colors=["orange","gray"],levels=[-1000,0,1000],linewidth=2)
+
+
+def f(x):
+    score=[x[0]+x[1]]
+    return(score)
