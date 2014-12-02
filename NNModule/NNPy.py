@@ -218,14 +218,50 @@ class LogisticModule(Module):
     def randomize_parameters(self):
         pass
 
+#########################
+# AGGREGATION FUNCTION  #
+#########################
+class sumAggregModule(Module):
+    #Permet le calcul de la sortie du module
+    def __init__(self,entry_size,layer_size):
+        pass
+    
+    def forward(self,input):
+        return np.sum(input,axis=0)
+    
+    #Permet le calcul du gradient des cellules d'entrée
+    def backward_delta(self,input,delta_module_suivant):
+        return delta_module_suivant
+        
+    #Permet d'initialiser le gradient du module
+    def init_gradient(self):
+        pass
+    
+    #Permet la mise à jour des parmaètres du module avcec la valeur courante di gradient
+    def update_parameters(self,gradient_step):
+        pass
+    #Permet de mettre à jour la valeur courante du gradient par addition
+    def backward_update_gradient(self,input,delta_module_suivant):
+        pass
+    
+    #Permet de faire les deux backwar simultanément
+    def backward(self,input,delta_module_suivant):
+        return self.backward_delta(input,delta_module_suivant)
 
+    #Retourne les paramètres du module
+    def get_parameters(self):
+        pass
+    
+    #Initialize aléatoirement les paramètres du module
+    def randomize_parameters(self):
+        pass
 
 #########################
 # MULTI MODULES CLASSES #
 #########################
 
-#Horizontal Module Class
-class HorizontalModule():
+#Network Module Class
+class NetworkModule():
     
     def __init__(self,modules,loss):
         self.modules = modules
@@ -250,7 +286,6 @@ class HorizontalModule():
 
             if not batch:
                 module.update_parameters(gradient_step)
-
 
         return loss_delta
 
@@ -289,6 +324,32 @@ class HorizontalModule():
                 self.update_parameters(gradient_step)
         self.update_parameters(gradient_step)
         return
+
+
+#Horizontal Module Class
+class HorizontalModule():
+    
+    def __init__(self,modules):
+        self.modules = modules
+    
+    def forward(self,input):
+        self.inputs = []
+        for module in self.modules:
+            self.inputs.append(input)
+            input = module.forward(input)
+        return input
+    
+    #Permet le calcul du gradient des cellules d'entrée
+    def backward(self,loss_delta):
+        for module,input in zip(reversed(self.modules),reversed(self.inputs)):
+            loss_delta = module.backward(input,loss_delta)
+
+        return loss_delta
+
+    def update_parameters(self,gradient_step):
+        for module in self.modules:
+            module.update_parameters(gradient_step)
+        return      
     
 
 #Vertical Module Class
@@ -306,15 +367,15 @@ class VerticalModule():
             raise "Not enough input in vertical module"
             
         self.outputs = [ module.forward(input[index]) for index , module in enumerate(self.modules) ]
+
         return aggreg.forward(self.outputs)
-            
-        return input
     
     #Permet le calcul du gradient des cellules d'entrée
-    def backward(self,predicted,wanted,batch=False,gradient_step=0.001):
-        loss_delta = self.loss.backward(predicted,wanted)
-        for module,input in zip(reversed(self.modules),reversed(self.inputs)):
-            loss_delta = module.backward(input,loss_delta)
+    def backward(self,delta):
+       
+        for module,output in zip(self.modules,self.output):
+            module_delta = aggreg.backward_delta(output,delta)
+            module.backward()
 
             if not batch:
                 module.update_parameters(gradient_step)
