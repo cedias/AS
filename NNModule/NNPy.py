@@ -218,6 +218,43 @@ class LogisticModule(Module):
     def randomize_parameters(self):
         pass
 
+class DropoutModule(Module):
+    #Permet le calcul de la sortie du module
+    def __init__(self,entry_size,layer_size):
+        pass
+    
+    def forward(self,input):
+        self.randomActivation = np.random.random_integers(0,1,len(input))
+        return input*self.randomActivation
+    
+    #Permet le calcul du gradient des cellules d'entrée
+    def backward_delta(self,input,delta_module_suivant):
+        return delta_module_suivant
+        
+        
+    #Permet d'initialiser le gradient du module
+    def init_gradient(self):
+        pass
+    
+    #Permet la mise à jour des parmaètres du module avcec la valeur courante di gradient
+    def update_parameters(self,gradient_step):
+        pass
+    #Permet de mettre à jour la valeur courante du gradient par addition
+    def backward_update_gradient(self,input,delta_module_suivant):
+        pass
+    
+    #Permet de faire les deux backwar simultanément
+    def backward(self,input,delta_module_suivant):
+        return self.backward_delta(input,delta_module_suivant)
+
+    #Retourne les paramètres du module
+    def get_parameters(self):
+        pass
+    
+    #Initialize aléatoirement les paramètres du module
+    def randomize_parameters(self):
+        pass
+
 #########################
 # AGGREGATION FUNCTION  #
 #########################
@@ -268,36 +305,35 @@ class NetworkModule():
         self.loss = loss
 
     
-    def forward(self,input):
-        self.inputs = []
+    def forwardIteration(self,input):
         for module in self.modules:
-            self.inputs.append(input)
-            input = module.forward(input)
+            input = module.forward_all(input)
         return input
 
     def forwardAll(self,examples):
-        return [self.forward(example) for example in examples]
+        return [self.forwardIteration(example) for example in examples]
     
     #Permet le calcul du gradient des cellules d'entrée
-    def backward(self,predicted,wanted,batch=False,gradient_step=0.001):
+    def backwardIteration(self,predicted,wanted,batch=False,gradient_step=0.001):
         loss_delta = self.loss.backward(predicted,wanted)
-        for module,input in zip(reversed(self.modules),reversed(self.inputs)):
-            loss_delta = module.backward(input,loss_delta)
+       
+        for mod in reversed(self.modules):
+            loss_delta = mod.backward_all(loss_delta)
 
             if not batch:
-                module.update_parameters(gradient_step)
+                self.update_parameters(gradient_step)
 
         return loss_delta
 
     def update_parameters(self,gradient_step):
         for module in self.modules:
-            module.update_parameters(gradient_step)
+            module.update_all_parameters(gradient_step)
         return
     
     def stochasticIter(self,examples,labels,gradient_step=0.001, verbose=False):
         for example, label in zip(examples,labels):
-            pred = self.forward(example)
-            loss = self.backward(pred,label,gradient_step=gradient_step)
+            pred = self.forwardIteration(example)
+            loss = self.backwardIteration(pred,label,gradient_step=gradient_step)
 
             if verbose:
                 print loss
@@ -305,8 +341,8 @@ class NetworkModule():
     
     def batchIter(self,examples,labels,gradient_step=0.001, verbose=False):
         for example, label in zip(examples,labels):
-            pred = self.forward(example)
-            loss = self.backward(pred,label,batch=True,gradient_step=gradient_step)
+            pred = self.forwardIteration(example)
+            loss = self.backwardIteration(pred,label,batch=True,gradient_step=gradient_step)
 
             if verbose:
                 print loss
@@ -315,8 +351,8 @@ class NetworkModule():
     
     def miniBatchIter(self,examples,labels,batch_size=10, gradient_step=0.001, verbose=False):
         for i, (example, label) in enumerate(zip(examples,labels)):
-            pred = self.forward(example)
-            loss = self.backward(pred,label,batch=True,gradient_step=gradient_step)
+            pred = self.forwardIteration(example)
+            loss = self.backwardIteration(pred,label,batch=True,gradient_step=gradient_step)
 
             if verbose:
                 print loss
@@ -332,7 +368,7 @@ class HorizontalModule():
     def __init__(self,modules):
         self.modules = modules
     
-    def forward(self,input):
+    def forward_all(self,input):
         self.inputs = []
         for module in self.modules:
             self.inputs.append(input)
@@ -340,13 +376,13 @@ class HorizontalModule():
         return input
     
     #Permet le calcul du gradient des cellules d'entrée
-    def backward(self,loss_delta):
+    def backward_all(self,loss_delta):
         for module,input in zip(reversed(self.modules),reversed(self.inputs)):
             loss_delta = module.backward(input,loss_delta)
 
         return loss_delta
 
-    def update_parameters(self,gradient_step):
+    def update_all_parameters(self,gradient_step):
         for module in self.modules:
             module.update_parameters(gradient_step)
         return      
@@ -361,7 +397,7 @@ class VerticalModule():
         self.aggreg = aggreg
 
     
-    def forward(self,input):
+    def forward_all(self,input):
         
         if len(input) < len(self.HModules):
             raise "Not enough input in vertical module"
@@ -371,7 +407,7 @@ class VerticalModule():
         return aggreg.forward(self.outputs)
     
     #Permet le calcul du gradient des cellules d'entrée
-    def backward(self,delta):
+    def backward_all(self,delta):
        
         for module,output in zip(self.modules,self.output):
             module_delta = aggreg.backward_delta(output,delta)
@@ -383,7 +419,7 @@ class VerticalModule():
 
         return loss_delta
 
-    def update_parameters(self,gradient_step):
+    def update_all_parameters(self,gradient_step):
         for module in self.modules:
             module.update_parameters(gradient_step)
         return
